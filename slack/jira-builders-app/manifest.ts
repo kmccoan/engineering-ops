@@ -1,5 +1,4 @@
 import { Manifest } from "deno-slack-sdk/mod.ts";
-import { SampleFunctionDefinition } from "./functions/sample_function.ts";
 import { ParseJiraIdsFunction } from "./functions/parse_jira_ids.ts";
 
 /**
@@ -11,7 +10,7 @@ export default Manifest({
   name: "jira-builders-app",
   description: "A template for building standalone functions in Slack",
   icon: "assets/default_new_app_icon.png",
-  functions: [SampleFunctionDefinition,ParseJiraIdsFunction],
+  functions: [ParseJiraIdsFunction],
   outgoingDomains: [],
   botScopes: [
     "commands",

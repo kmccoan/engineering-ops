@@ -1,4 +1,6 @@
 import { DefineFunction, Schema, SlackFunction } from "deno-slack-sdk/mod.ts";
+import { getSlackMessageFromPermalink } from "./internals/slack_client.ts";
+import { parseJiraIdsFromString } from "./internals/jira_helpers.ts";
 
 /**
  * Functions are reusable building blocks of automation that accept
@@ -9,16 +11,16 @@ import { DefineFunction, Schema, SlackFunction } from "deno-slack-sdk/mod.ts";
 export const ParseJiraIdsFunction = DefineFunction({
   callback_id: "parse_jira_ids_function",
   title: "Parse Jira Ids",
-  description: "Takes a string and parses Jira Ids",
+  description: "Takes a slack message permalink and parses Jira Ids",
   source_file: "functions/parse_jira_ids.ts",
   input_parameters: {
     properties: {
-      stringToParse: {
+      messagesResponse: {
         type: Schema.types.string,
-        description: "The string to parse for jira ids",
+        description: "Link to the message to parse",
       },
     },
-    required: ["stringToParse"],
+    required: ["messagesResponse"],
   },
   output_parameters: {
     properties: {
@@ -34,44 +36,16 @@ export const ParseJiraIdsFunction = DefineFunction({
 export default SlackFunction(
   ParseJiraIdsFunction,
   async ({ inputs, client }) => {
-    // Should be format https://ghostbusters.slack.com/archives/C1H9RESGA/p135854651500008
-    // or "https://ghostbusters.slack.com/archives/C1H9RESGL/p135854651700023?thread_ts=1358546515.000008&cid=C1H9RESGL" (when threaded msg.)
-    console.log("String to parse:", inputs.stringToParse);
-    const slackPermalink = new URL(inputs.stringToParse);
+    console.log("String to parse:", inputs.messagesResponse);
+    const slackPermalink = new URL(inputs.messagesResponse);
+    const message = await getSlackMessageFromPermalink(client, slackPermalink);
+    const jiraIdsArray = parseJiraIdsFromString(message);
 
-    const pathParts = slackPermalink.pathname.split("/");
-    const channelId = pathParts[2]; //C1H9RESGA
-    const permalinkId = pathParts[3]; //p135854651500008
-    const unformattedMessageTS = permalinkId.substring(1); //135854651500008
-    console.log("channelId", channelId);
-    console.log("permalinkId", permalinkId);
-    console.log("unformattedMessageTS", unformattedMessageTS);
-    if (unformattedMessageTS.indexOf('?') != -1) {
-      unformattedMessageTS = unformattedMessageTS.substring(0, latest.indexOf('?'));
-    }
-   const messageTS = unformattedMessageTS.substring(0, unformattedMessageTS.length-6) + '.' + unformattedMessageTS.substring(unformattedMessageTS.length-6); //1358546515.00008
-   console.log("messageTS", messageTS);
-
-   await client.conversations.join({
-    channel: channelId
-  });
-
-    const stringToParse = (await client.conversations.history({
-      channel: channelId,
-      latest: messageTS,
-      limit: 1,
-      inclusive: true,
-    })).messages[0].text;
-
-    console.log("string to parse: ", stringToParse);
-
-    const jiraTicketIDRegex = /\b[A-Za-z]+-\d+\b/g;
-    const jiraIdsArray = [...stringToParse.matchAll(jiraTicketIDRegex)];
-    if (jiraIdsArray.length === 0 ) {
-      console.log("here:");
+    if (jiraIdsArray.length === 0) {
+      console.log("no-jiras-found");
       return {
-        outputs: { 
-          jiraIds: "no-jiras-found" 
+        outputs: {
+          jiraIds: "no-jiras-found"
         },
       };
     }
