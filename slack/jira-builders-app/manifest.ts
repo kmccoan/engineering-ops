@@ -1,5 +1,5 @@
 import { Manifest } from "deno-slack-sdk/mod.ts";
-import { ParseJiraIdsFunction } from "./functions/parse_jira_ids.ts";
+import { CallJiraAutomationWebhookFunction } from "./functions/call_jira_automation_webhook.ts";
 
 /**
  * The app manifest contains the app's configuration. This
@@ -10,7 +10,7 @@ export default Manifest({
   name: "jira-builders-app",
   description: "A template for building standalone functions in Slack",
   icon: "assets/default_new_app_icon.png",
-  functions: [ParseJiraIdsFunction],
+  functions: [CallJiraAutomationWebhookFunction],
   outgoingDomains: [],
   botScopes: [
     "commands",

@@ -1,6 +1,6 @@
 import { DefineFunction, Schema, SlackFunction } from "deno-slack-sdk/mod.ts";
 import { getSlackMessageFromPermalink } from "./internals/slack_client.ts";
-import { parseJiraIdsFromString } from "./internals/jira_helpers.ts";
+import { CallJiraAutomationWebhookFromString } from "./internals/jira_helpers.ts";
 
 /**
  * Functions are reusable building blocks of automation that accept
@@ -8,11 +8,11 @@ import { parseJiraIdsFromString } from "./internals/jira_helpers.ts";
  * be used independently or as steps in workflows.
  * https://api.slack.com/automation/functions/custom
  */
-export const ParseJiraIdsFunction = DefineFunction({
-  callback_id: "parse_jira_ids_function",
-  title: "Parse Jira Ids",
-  description: "Takes a slack message permalink and parses Jira Ids",
-  source_file: "functions/parse_jira_ids.ts",
+export const CallJiraAutomationWebhookFunction = DefineFunction({
+  callback_id: "call_jira_automation_webhook_function",
+  title: "Call Jira automation webhook",
+  description: "Takes a slack message permalink, parses Jira Ids, and calls Jira automation webhook",
+  source_file: "functions/call_jira_automation_webhook.ts",
   input_parameters: {
     properties: {
       messagesResponse: {
@@ -34,12 +34,12 @@ export const ParseJiraIdsFunction = DefineFunction({
 });
 
 export default SlackFunction(
-  ParseJiraIdsFunction,
+  CallJiraAutomationWebhookFunction,
   async ({ inputs, client }) => {
     console.log("String to parse:", inputs.messagesResponse);
     const slackPermalink = new URL(inputs.messagesResponse);
     const message = await getSlackMessageFromPermalink(client, slackPermalink);
-    const jiraIdsArray = parseJiraIdsFromString(message);
+    const jiraIdsArray = CallJiraAutomationWebhookFromString(message);
 
     if (jiraIdsArray.length === 0) {
       console.log("no-jiras-found");
