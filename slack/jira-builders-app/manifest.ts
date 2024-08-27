@@ -11,7 +11,7 @@ export default Manifest({
   description: "A template for building standalone functions in Slack",
   icon: "assets/default_new_app_icon.png",
   functions: [CallJiraAutomationWebhookFunction],
-  outgoingDomains: [],
+  outgoingDomains: ["automation.atlassian.com"],
   botScopes: [
     "commands",
     "chat:write",

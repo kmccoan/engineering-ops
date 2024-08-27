@@ -9,7 +9,6 @@ export async function getSlackMessageFromPermalink(client: any, permalink: URL) 
     const { channelId, messageTS, threadTS } = parseSlackPermalink(permalink);
 
     // Bot must be in public channel to access messages.
-    console.log("there", client)
     await client.conversations.join({
         channel: channelId
     });
@@ -20,7 +19,6 @@ export async function getSlackMessageFromPermalink(client: any, permalink: URL) 
         return { error: messagesResponse.error }
     }
 
-    console.log("here", messagesResponse)
     if (messagesResponse.messages.length == 0) {
         return { error: SLACK_NO_MESSAGE_FOUND };
     }

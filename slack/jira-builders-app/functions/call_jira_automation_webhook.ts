@@ -1,6 +1,7 @@
 import { DefineFunction, Schema, SlackFunction } from "deno-slack-sdk/mod.ts";
 import { getSlackMessageFromPermalink } from "./internals/slack_client.ts";
-import { parseJiraIdsFromString } from "./internals/jira_helpers.ts";
+import { parseJiraIdsFromSlackTextBody } from "./internals/jira_helpers.ts";
+import { callJiraWebhook } from "./internals/jira_client.ts";
 
 /**
  * Functions are reusable building blocks of automation that accept
@@ -19,8 +20,16 @@ export const CallJiraAutomationWebhookFunction = DefineFunction({
         type: Schema.types.string,
         description: "Link to the message to parse",
       },
+      jiraAutomationWebhook: {
+        type: Schema.types.string,
+        description: "Jira automation webhook",
+      },
+      jiraAutomationDocumentation: {
+        type: Schema.types.string,
+        description: "Url to Jira automation configuration",
+      }
     },
-    required: ["messagePermalink"],
+    required: ["messagePermalink", "jiraAutomationWebhook"],
   },
   output_parameters: {
     properties: {
@@ -36,6 +45,13 @@ export const CallJiraAutomationWebhookFunction = DefineFunction({
 export default SlackFunction(
   CallJiraAutomationWebhookFunction,
   async ({ inputs, client }) => {
+    try {
+      new URL(inputs.jiraAutomationWebhook)
+    } catch(e) {
+      const error = `Malformed Jira automation webhook URL. Are you sure you have a properly constructed URL? Input was: ${inputs.jiraAutomationWebhook}`;
+      console.log(error);
+      return { error };
+    }
     console.log("String to parse:", inputs.messagePermalink);
     const slackPermalink = new URL(inputs.messagePermalink);
     const message = await getSlackMessageFromPermalink(client, slackPermalink);
@@ -46,7 +62,7 @@ export default SlackFunction(
       return { error };
     }
 
-    const jiraIdsArray = parseJiraIdsFromString(message);
+    const jiraIdsArray = parseJiraIdsFromSlackTextBody(message);
 
     if (jiraIdsArray.length === 0) {
       console.log("no-jiras-found");
@@ -56,6 +72,12 @@ export default SlackFunction(
         },
       };
     }
+
+    const jiraResponse = await callJiraWebhook(new URL(inputs.jiraAutomationWebhook), jiraIdsArray, slackPermalink);
+
+    console.log(jiraResponse);
+
+
     const jiraIds = jiraIdsArray.join(",");
     console.log("Jira ids:", jiraIds);
     return {
