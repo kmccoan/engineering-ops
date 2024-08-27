@@ -22,7 +22,7 @@ export const CallJiraAutomationWebhookFunction = DefineFunction({
       },
       jiraAutomationWebhook: {
         type: Schema.types.string,
-        description: "Jira automation webhook",
+        description: "Domain must be: automation.atlassian.com",
       },
       jiraAutomationDocumentation: {
         type: Schema.types.string,
@@ -73,10 +73,23 @@ export default SlackFunction(
       };
     }
 
-    const jiraResponse = await callJiraWebhook(new URL(inputs.jiraAutomationWebhook), jiraIdsArray, slackPermalink);
-
-    console.log(jiraResponse);
-
+    const jiraAutomationWebhookUrl = new URL(inputs.jiraAutomationWebhook);
+    try {
+      const jiraResponse = await callJiraWebhook(jiraAutomationWebhookUrl, jiraIdsArray, slackPermalink);
+      console.log(jiraResponse);
+      if (jiraResponse.status != 200) {
+        return { error: `Jira automation response was a ${jiraResponse.status}. Configuration is at ${inputs.jiraAutomationDocumentation}` };
+      }
+    } catch (e) {
+      const error = `Failed to trigger automation. Error was ${e}. 
+      
+      Common problems:
+      1. PermissionDenied - net access:
+      Outgoing domain allowed: [automation.atlassian.com]. Your webhook url domain was "${jiraAutomationWebhookUrl.hostname}".
+      Is your webook URL domain allowed?`;
+      console.log(error);
+      return { error };
+    }
 
     const jiraIds = jiraIdsArray.join(",");
     console.log("Jira ids:", jiraIds);
