@@ -15,12 +15,12 @@ export const CallJiraAutomationWebhookFunction = DefineFunction({
   source_file: "functions/call_jira_automation_webhook.ts",
   input_parameters: {
     properties: {
-      messagesResponse: {
+      messagePermalink: {
         type: Schema.types.string,
         description: "Link to the message to parse",
       },
     },
-    required: ["messagesResponse"],
+    required: ["messagePermalink"],
   },
   output_parameters: {
     properties: {
@@ -36,8 +36,8 @@ export const CallJiraAutomationWebhookFunction = DefineFunction({
 export default SlackFunction(
   CallJiraAutomationWebhookFunction,
   async ({ inputs, client }) => {
-    console.log("String to parse:", inputs.messagesResponse);
-    const slackPermalink = new URL(inputs.messagesResponse);
+    console.log("String to parse:", inputs.messagePermalink);
+    const slackPermalink = new URL(inputs.messagePermalink);
     const message = await getSlackMessageFromPermalink(client, slackPermalink);
     const jiraIdsArray = CallJiraAutomationWebhookFromString(message);
 
