@@ -75,7 +75,7 @@ export default SlackFunction(
 
     const jiraAutomationWebhookUrl = new URL(inputs.jiraAutomationWebhook);
     try {
-      const jiraResponse = await callJiraWebhook(jiraAutomationWebhookUrl, jiraIdsArray, slackPermalink);
+      const jiraResponse = await callJiraWebhook(jiraAutomationWebhookUrl, jiraIdsArray, slackPermalink, message);
       console.log(jiraResponse);
       if (jiraResponse.status != 200) {
         return { error: `Jira automation response was a ${jiraResponse.status}. Configuration is at ${inputs.jiraAutomationDocumentation}` };
