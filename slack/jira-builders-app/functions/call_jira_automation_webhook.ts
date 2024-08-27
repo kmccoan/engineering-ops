@@ -1,6 +1,6 @@
 import { DefineFunction, Schema, SlackFunction } from "deno-slack-sdk/mod.ts";
 import { getSlackMessageFromPermalink } from "./internals/slack_client.ts";
-import { CallJiraAutomationWebhookFromString } from "./internals/jira_helpers.ts";
+import { parseJiraIdsFromString } from "./internals/jira_helpers.ts";
 
 /**
  * Functions are reusable building blocks of automation that accept
@@ -39,7 +39,14 @@ export default SlackFunction(
     console.log("String to parse:", inputs.messagePermalink);
     const slackPermalink = new URL(inputs.messagePermalink);
     const message = await getSlackMessageFromPermalink(client, slackPermalink);
-    const jiraIdsArray = CallJiraAutomationWebhookFromString(message);
+
+    if (message.error) {
+      const error = `Failed to fetch the message due to ${message.error}.`;
+      console.log(error);
+      return { error };
+    }
+
+    const jiraIdsArray = parseJiraIdsFromString(message);
 
     if (jiraIdsArray.length === 0) {
       console.log("no-jiras-found");
