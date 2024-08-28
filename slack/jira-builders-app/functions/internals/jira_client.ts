@@ -1,4 +1,4 @@
-export async function callJiraWebhook(webhookUrl: URL, issueKeys: string[], slackPermalink: URL, slackMessage: string) {
+export async function callJiraWebhookWithSlackMessageInfo(webhookUrl: URL, issueKeys: string[], slackPermalink: URL, slackMessage: string) {
     const jiraResponse = await fetch(webhookUrl.href, {
         method: "POST",
         headers: {
@@ -8,6 +8,21 @@ export async function callJiraWebhook(webhookUrl: URL, issueKeys: string[], slac
             issues: issueKeys,
             slackPermalink: slackPermalink.href,
             slackMessage
+        }),
+    });
+    return jiraResponse;
+}
+
+export async function callJiraWebhookWithUserInfo(webhookUrl: URL, slackUserId: string, slackUserEmail: string, slackUsername: string) {
+    const jiraResponse = await fetch(webhookUrl.href, {
+        method: "POST",
+        headers: {
+            "content-type": "application/json",
+        },
+        body: JSON.stringify({
+            slackUserId,
+            slackUserEmail,
+            slackUsername
         }),
     });
     return jiraResponse;

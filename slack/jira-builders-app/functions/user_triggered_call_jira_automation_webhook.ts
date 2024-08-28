@@ -1,7 +1,7 @@
 import { DefineFunction, Schema, SlackFunction } from "deno-slack-sdk/mod.ts";
-import { getSlackMessageFromPermalink } from "./internals/slack_client.ts";
+import { getSlackMessageFromPermalinkm, getSlackUser } from "./internals/slack_client.ts";
 import { parseJiraIdsFromSlackTextBody } from "./internals/jira_helpers.ts";
-import { callJiraWebhookWithSlackMessageInfo } from "./internals/jira_client.ts";
+import { callJiraWebhookWithSlackMessageInfo, callJiraWebhookWithUserInfo } from "./internals/jira_client.ts";
 
 /**
  * Functions are reusable building blocks of automation that accept
@@ -9,16 +9,16 @@ import { callJiraWebhookWithSlackMessageInfo } from "./internals/jira_client.ts"
  * be used independently or as steps in workflows.
  * https://api.slack.com/automation/functions/custom
  */
-export const CallJiraAutomationWebhookFunction = DefineFunction({
-  callback_id: "call_jira_automation_webhook_function",
-  title: "Call Jira automation webhook",
-  description: "Takes a slack message permalink, parses Jira Ids, and calls Jira automation webhook",
-  source_file: "functions/call_jira_automation_webhook.ts",
+export const UserTriggeredCallJiraAutomationWebhookFunction = DefineFunction({
+  callback_id: "user_triggered_call_jira_automation_webhook_function",
+  title: "Call Jira automation webhook from a user triggered event",
+  description: "Takes a slack user and calls a Jira automation webhook",
+  source_file: "functions/user_triggered_call_jira_automation_webhook.ts",
   input_parameters: {
     properties: {
-      messagePermalink: {
+      slackUserId: {
         type: Schema.types.string,
-        description: "Link to the message to parse",
+        description: "The user's id",
       },
       jiraAutomationWebhook: {
         type: Schema.types.string,
@@ -29,21 +29,15 @@ export const CallJiraAutomationWebhookFunction = DefineFunction({
         description: "Url to Jira automation configuration",
       }
     },
-    required: ["messagePermalink", "jiraAutomationWebhook"],
+    required: ["slackUserId", "jiraAutomationWebhook"],
   },
   output_parameters: {
-    properties: {
-      jiraIds: {
-        type: Schema.types.string,
-        description: "Comma delimited list of Jira ids. ie: FOO-124,LOL-789 or `no-jiras-found`",
-      },
-    },
-    required: ["jiraIds"],
+    properties: {}
   },
 });
 
 export default SlackFunction(
-  CallJiraAutomationWebhookFunction,
+  UserTriggeredCallJiraAutomationWebhookFunction,
   async ({ inputs, client }) => {
     try {
       new URL(inputs.jiraAutomationWebhook)
@@ -52,30 +46,24 @@ export default SlackFunction(
       console.log(error);
       return { error };
     }
-    console.log("String to parse:", inputs.messagePermalink);
-    const slackPermalink = new URL(inputs.messagePermalink);
-    const message = await getSlackMessageFromPermalink(client, slackPermalink);
 
-    if (message.error) {
-      const error = `Failed to fetch the message due to ${message.error}.`;
+    const slackUserId = inputs.slackUserId;
+    console.log("Slack user Id:", slackUserId);
+    if (!slackUserId.startsWith("U")) {
+      return { error: `The input to this step needs to be the slack USER ID (change via click dropdown in workflow step user id field). Your input was ${slackUserId}` };
+    }
+
+    const slackUserResponse = await getSlackUser(client, slackUserId);
+
+    if (slackUserResponse.error) {
+      const error = `Failed to fetch the user due to ${slackUserResponse.error}.`;
       console.log(error);
       return { error };
     }
-
-    const jiraIdsArray = parseJiraIdsFromSlackTextBody(message);
-
-    if (jiraIdsArray.length === 0) {
-      console.log("no-jiras-found");
-      return {
-        outputs: {
-          jiraIds: "no-jiras-found"
-        },
-      };
-    }
-
+    
     const jiraAutomationWebhookUrl = new URL(inputs.jiraAutomationWebhook);
     try {
-      const jiraResponse = await callJiraWebhookWithSlackMessageInfo(jiraAutomationWebhookUrl, jiraIdsArray, slackPermalink, message);
+      const jiraResponse = await callJiraWebhookWithUserInfo(jiraAutomationWebhookUrl, slackUserResponse.user.id, slackUserResponse.user.profile.email, slackUserResponse.user.name);
       console.log(jiraResponse);
       if (jiraResponse.status != 200) {
         return { error: `Jira automation response was a ${jiraResponse.status}. Configuration is at ${inputs.jiraAutomationDocumentation}` };
@@ -91,10 +79,8 @@ export default SlackFunction(
       return { error };
     }
 
-    const jiraIds = jiraIdsArray.join(",");
-    console.log("Jira ids:", jiraIds);
     return {
-      outputs: { jiraIds },
+      outputs: {  },
     };
   },
 );

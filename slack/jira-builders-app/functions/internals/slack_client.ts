@@ -5,6 +5,14 @@ export interface SlackMessageResponse {
     error: string;
 }
 
+export async function getSlackUser(client: any, slackUserId: string) {
+    const slackUser = await client.users.info({
+        user: slackUserId
+    });
+    console.log("Slack user is", slackUser);
+    return slackUser;
+}
+
 export async function getSlackMessageFromPermalink(client: any, permalink: URL) {
     const { channelId, messageTS, threadTS } = parseSlackPermalink(permalink);
 
