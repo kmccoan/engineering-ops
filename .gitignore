@@ -5,3 +5,6 @@
 
 #Slack app configurations
 .slack
+
+# Cloned public repo
+slack_jira_sync
