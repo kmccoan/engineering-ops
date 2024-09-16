@@ -1,0 +1,15 @@
+{
+    "name": "bitbucket-pull-request-checker",
+    "version": "1.0.0",
+    "description": "Script to check if pull requests were merged before approval in Bitbucket.",
+    "main": "index.js",
+    "scripts": {
+        "unapproved-check": "node unapproved_prs.js"
+    },
+    "dependencies": {
+        "axios": "^1.7.7",
+        "node-file-cache": "^1.0.2",
+        "promise-throttle": "^1.1.2",
+        "minimist": "^1.2.0"
+    }
+}

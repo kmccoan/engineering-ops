@@ -8,3 +8,10 @@
 
 # Cloned public repo
 slack_jira_sync
+
+# Node
+node_modules
+
+# Any configuration files.
+config.json
+config.js

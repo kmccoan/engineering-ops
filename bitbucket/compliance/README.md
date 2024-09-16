@@ -17,3 +17,9 @@ Finally, install the versions specified in [`.tool-versions`](/.tool-versions) w
 asdf install
 ```
 Now if you run `asdf current` you should see the installed Node versions.
+
+# Running
+```sh
+npm install
+npm run unapproved-check
+```
