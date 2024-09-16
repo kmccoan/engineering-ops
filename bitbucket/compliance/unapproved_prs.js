@@ -1,13 +1,12 @@
-const config = require("./config");
-const minimist = require('minimist');
-const bitbucketClient = require('./bitbucketClient')();
+import config from "./config.js";
+import minimist from 'minimist';
+import {bbClientInit} from './bitbucketClient.js';
+const bitbucketClient = bbClientInit();
 
 const REPOSITORIES = config.BITBUCKET_REPOSITORIES;
 const args = minimist(process.argv.slice(2));
 
-var defaultFromDate = new Date();
-defaultFromDate.setDate(defaultFromDate.getDate() - 7);
-const FROM_DATE = args.d || defaultFromDate;
+const FROM_DATE = config.FROM_DATE;
 
 processRepositories();
 
@@ -34,6 +33,7 @@ function wasMergedBeforeApproval(activity) {
 async function processRepositories() {
     for (const repo of REPOSITORIES) {
         console.log(`Processing repository: ${repo}`);
+        console.log(`------------------------------`);
 
         const pullRequests = await bitbucketClient.getMergedPullRequests(repo, FROM_DATE);
 
@@ -46,8 +46,9 @@ async function processRepositories() {
 
         console.log(`PRs merged before approval: ${mergedWithoutApproval.length}/${pullRequests.length}`);
         for (let unApprovedPR of mergedWithoutApproval) {
-            console.log(unApprovedPR.links.self.href);
+            console.log(unApprovedPR.links.html.href);
         }
+        console.log(`------------------------------\n\n`);
     }
 
 }

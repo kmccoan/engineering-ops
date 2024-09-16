@@ -18,8 +18,24 @@ asdf install
 ```
 Now if you run `asdf current` you should see the installed Node versions.
 
+# Configuring:
+Create a config.js with the following:
+```js
+export default {
+    //https://bitbucket.org/account/settings/
+    BITBUCKET_USERNAME: "<username - NOT EMAIL>",
+
+    // https://bitbucket.org/account/settings/app-passwords/
+    BITBUCKET_PASSWORD: "<app password>",
+
+    BITBUCKET_WORKSPACE: "<workspace-slug>",
+    BITBUCKET_REPOSITORIES: ["<repo-name>"],
+    FROM_DATE: new Date(Date.parse("Jun 1, 2024"))
+ }
+```
+
 # Running
 ```sh
 npm install
-npm run unapproved-check
+npm run unapproved-check > result.txt
 ```
