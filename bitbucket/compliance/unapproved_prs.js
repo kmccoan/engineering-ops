@@ -10,9 +10,10 @@ const FROM_DATE = config.FROM_DATE;
 
 processRepositories();
 
-function wasMergedBeforeApproval(activity) {
+function getApprovalStatus(pr) {
+    const activity = pr.prActivity;
     let mergeDate = null;
-    let approvalDate = null;
+    const approvalDates = [];
 
     activity.forEach(event => {
         if (event.update && event.update.state === 'MERGED') {
@@ -21,13 +22,30 @@ function wasMergedBeforeApproval(activity) {
 
         if (event.approval) {
             const approvalEventDate = new Date(event.approval.date);
-            if (!approvalDate || approvalEventDate < approvalDate) {
-                approvalDate = approvalEventDate;
-            }
+            approvalDates.push(approvalEventDate);
         }
     });
 
-    return mergeDate && (!approvalDate || mergeDate < approvalDate);
+    if (mergeDate && approvalDates.length === 0) {
+        return 'NOT_COMPLIANT-MERGED_NO_APPROVAL';
+    }
+
+    const approvedBeforeMerge = approvalDates.some(approvalDate => mergeDate < approvalDate);
+    const approvedAfterMerge = approvalDates.some(approvalDate => mergeDate > approvalDate);
+    if (mergeDate && approvedBeforeMerge) {
+        return 'COMPLIANT-MERGED_AFTER_APPROVAL';
+    }
+
+    if (mergeDate && approvedBeforeMerge && approvedAfterMerge) {
+        return 'SEMI_COMPLIANT-MERGED_WITH_ADDITIONAL_POST_APPROVAL';
+    }
+
+    if (mergeDate && approvedAfterMerge) {
+        return 'NOT_COMPLIANT-MERGED_WITH_ONLY_POST_APPROVAL';
+    }
+
+    console.log(approvalDates);
+    throw new Error(`What is this state? ${pr.links.html.href}. Merge date ${mergeDate}, approvedBeforeMerge: ${approvedBeforeMerge}, approvedAfterMerge: ${approvedAfterMerge}`)
 }
 
 async function processRepositories() {
@@ -39,14 +57,23 @@ async function processRepositories() {
 
         const mergedWithoutApproval = [];
         for (const pr of pullRequests) {
-            if (wasMergedBeforeApproval(pr.prActivity)) {
-                mergedWithoutApproval.push(pr);
-            }
+            pr.approvalStatus = getApprovalStatus(pr);
         }
 
-        console.log(`PRs merged before approval: ${mergedWithoutApproval.length}/${pullRequests.length}`);
-        for (let unApprovedPR of mergedWithoutApproval) {
-            console.log(unApprovedPR.links.html.href);
+        const notCompliantPRs = pullRequests.filter(pr => pr.approvalStatus.startsWith("NOT_COMPLIANT"));
+        const semiCompliantPRs = pullRequests.filter(pr => pr.approvalStatus.startsWith("SEMI_COMPLIANT"));
+        const compliant = pullRequests.filter(pr => pr.approvalStatus.startsWith("COMPLIANT"));
+        console.log(`Not Compliant: ${notCompliantPRs.length}/${pullRequests.length}`);
+        for (let pr of notCompliantPRs) {
+            console.log(pr.links.html.href);
+        }
+        console.log(`Semi Compliant: ${semiCompliantPRs.length}/${pullRequests.length}`);
+        for (let pr of semiCompliantPRs) {
+            console.log(pr.links.html.href);
+        }
+        console.log(`Compliant: ${compliant.length}/${pullRequests.length}`);
+        for (let pr of compliant) {
+            console.log(pr.links.html.href);
         }
         console.log(`------------------------------\n\n`);
     }

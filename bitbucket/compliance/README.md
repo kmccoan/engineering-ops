@@ -7,9 +7,9 @@ brew install asdf
 echo -e "\n. $(brew --prefix asdf)/libexec/asdf.sh" >> ${ZDOTDIR:-~}/.zshrc
 ```
 
-Then install the asdf-deno plugin:
+Then install the asdf-node plugin:
 ```sh
-asdf plugin-add deno https://github.com/asdf-community/asdf-deno.git
+asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
 ```
 
 Finally, install the versions specified in [`.tool-versions`](/.tool-versions) with a single command:
