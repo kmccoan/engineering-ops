@@ -58,7 +58,7 @@ function getApprovalStatus(pr) {
 async function processRepositories() {
     const csvResultWriter = initializeCsvWriter();
     for (const workspaceRepo of WORKSPACE_REPOSITORIES) {
-        console.log(`Processing repository: ${workspaceRepo}`);
+        console.log(`Processing repository: ${workspaceRepo} from ${FROM_DATE.toISOString()}`);
         console.log(`------------------------------`);
 
         const pullRequests = await bitbucketClient.getMergedPullRequests(workspaceRepo, FROM_DATE);
