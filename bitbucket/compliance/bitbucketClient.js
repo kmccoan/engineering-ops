@@ -8,10 +8,8 @@ const cache = nfc.create({
 import config from "./config.js";
 
 export function bbClientInit() {
-    const workspace = config.BITBUCKET_WORKSPACE;
     const username = config.BITBUCKET_USERNAME;
     const password = config.BITBUCKET_PASSWORD;
-    const REQUESTS_PER_SECOND_THROTTLE = 1;
     const auth = Buffer.from(`${username}:${password}`).toString('base64');
     const axiosInstance = axios.create({
         headers: {
@@ -24,21 +22,21 @@ export function bbClientInit() {
         interval: 3600000
     });
 
-    async function getMergedPullRequests(repo, fromDate) {
+    async function getMergedPullRequests(workspaceRepo, fromDate) {
         try {
-            const allMergedPRs = await getMergedPRs(repo, fromDate);
-            const enrichedMergedPRs = await enrichMergedPRs(repo, allMergedPRs);
+            const allMergedPRs = await getMergedPRs(workspaceRepo, fromDate);
+            const enrichedMergedPRs = await enrichMergedPRs(workspaceRepo, allMergedPRs);
             return enrichedMergedPRs;
         } catch (error) {
-            console.error(`Error fetching pull requests for ${repo}:`, error.message);
+            console.error(`Error fetching pull requests for ${workspaceRepo}:`, error.message);
             return [];
         }
     }
 
-    async function getMergedPRs(repo, from) {
-        process.stdout.write(`Retrieving PRs for ${repo}`);
+    async function getMergedPRs(workspaceRepo, from) {
+        process.stdout.write(`Retrieving PRs for ${workspaceRepo}`);
         const allMergedPRs = [];
-        let next = `https://api.bitbucket.org/2.0/repositories/${workspace}/${repo}/pullrequests`;
+        let next = `https://api.bitbucket.org/2.0/repositories/${workspaceRepo}/pullrequests`;
         while (next) {
             const throttledRequest = throttle(() => axiosInstance.get(next, {
                 params: {
@@ -63,7 +61,7 @@ export function bbClientInit() {
         return allMergedPRs.flat();
     }
 
-    async function enrichMergedPRs(repo, prs) {
+    async function enrichMergedPRs(workspaceRepo, prs) {
         const enrichedPRs = [];
         process.stdout.write(`Enriching ${prs.length} PRs`);
         for (let pr of prs) {
@@ -71,7 +69,7 @@ export function bbClientInit() {
             if (cache.get(prCacheKey(pr))) {
                 enrichedPRs.push(cache.get(prCacheKey(pr)));
             } else {
-                const prActivity = await getPullRequestActivity(repo, pr.id);
+                const prActivity = await getPullRequestActivity(workspaceRepo, pr.id);
                 const enrichedPR = {
                     ...pr,
                     prActivity
@@ -84,8 +82,8 @@ export function bbClientInit() {
         return enrichedPRs;
     }
 
-    async function getPullRequestActivity(repo, pullRequestId) {
-        let next = `https://api.bitbucket.org/2.0/repositories/${workspace}/${repo}/pullrequests/${pullRequestId}/activity`;
+    async function getPullRequestActivity(workspaceRepo, pullRequestId) {
+        let next = `https://api.bitbucket.org/2.0/repositories/${workspaceRepo}/pullrequests/${pullRequestId}/activity`;
 
         const activity = [];
         while (next) {

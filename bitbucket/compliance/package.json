@@ -9,9 +9,7 @@
     },
     "dependencies": {
         "axios": "^1.7.7",
-        "minimist": "^1.2.0",
         "node-file-cache": "^1.0.2",
-        "p-throttle": "^6.2.0",
-        "promise-throttle": "^1.1.2"
+        "p-throttle": "^6.2.0"
     }
 }

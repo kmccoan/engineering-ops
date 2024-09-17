@@ -1,27 +1,25 @@
 import fs from 'fs';
 
-export function writeCSVResults(repo, pullRequests) {
-    const rows = getPullRequestRows(repo, pullRequests);
-    try {
-        fs.writeFileSync(
-            `results/${repo}-results.csv`,
-            rows
-        )
-    } catch (err) {
-        console.error(err)
+export function initializeCsvWriter() {
+    const resultsFilePath = "results/prApprovalStatuses.csv";
+    fs.unlinkSync( resultsFilePath )
+    const stream = fs.createWriteStream(resultsFilePath, {flags:'a'});
+    const header = "Repo, PR number, Created at, Approval Status\n";
+    stream.write(header);
+
+    return {
+        appendResult: (workspaceRepo, pr) => {
+            stream.write(prRow(workspaceRepo, pr) + "\n");
+        },
+        end: () => stream.end()
     }
 }
 
-function getPullRequestRows(repo, pullRequests) {
-    const header = "Repo, PR number, Created at, Approval Status";
-    pullRequests.sort((a, b) => { return parseInt(b.id) - parseInt(a.id)});
-    const rows = pullRequests
-        .map(pr => [
-            repo,
-            `${pr.id}`,
-            `${new Date(pr.created_on)}`,
-            pr.approvalStatus
-        ].join(','));
-
-    return [header].concat(rows).join(`\n`);
+function prRow(workspaceRepo, pr) {
+    return [
+        workspaceRepo,
+        `${pr.id}`,
+        `${new Date(pr.created_on).toISOString()}`,
+        pr.approvalStatus
+    ].join(',');
 }

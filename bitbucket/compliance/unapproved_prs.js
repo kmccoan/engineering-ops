@@ -1,12 +1,10 @@
 import config from "./config.js";
-import minimist from 'minimist';
 import { bbClientInit } from './bitbucketClient.js';
-import { writeCSVResults } from "./unapprovedPRCsvLogger.js"
+import { initializeCsvWriter } from "./unapprovedPRCsvLogger.js"
 
 const bitbucketClient = bbClientInit();
 
-const REPOSITORIES = config.BITBUCKET_REPOSITORIES;
-const args = minimist(process.argv.slice(2));
+const WORKSPACE_REPOSITORIES = config.BITBUCKET_WORKSPACE_REPOSITORIES;
 
 const FROM_DATE = config.FROM_DATE;
 
@@ -58,14 +56,16 @@ function getApprovalStatus(pr) {
 }
 
 async function processRepositories() {
-    for (const repo of REPOSITORIES) {
-        console.log(`Processing repository: ${repo}`);
+    const csvResultWriter = initializeCsvWriter();
+    for (const workspaceRepo of WORKSPACE_REPOSITORIES) {
+        console.log(`Processing repository: ${workspaceRepo}`);
         console.log(`------------------------------`);
 
-        const pullRequests = await bitbucketClient.getMergedPullRequests(repo, FROM_DATE);
+        const pullRequests = await bitbucketClient.getMergedPullRequests(workspaceRepo, FROM_DATE);
 
         for (const pr of pullRequests) {
             pr.approvalStatus = getApprovalStatus(pr);
+            csvResultWriter.appendResult(workspaceRepo, pr);
         }
 
         const notCompliantPRs = pullRequests.filter(pr => pr.approvalStatus.startsWith("NOT_COMPLIANT"));
@@ -84,8 +84,6 @@ async function processRepositories() {
             console.log(pr.links.html.href);
         }
         console.log(`------------------------------\n\n`);
-
-        writeCSVResults(repo, pullRequests);
     }
-
+    csvResultWriter.end();
 }
