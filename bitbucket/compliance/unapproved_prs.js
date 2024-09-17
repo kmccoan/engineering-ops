@@ -5,8 +5,8 @@ import { initializeCsvWriter } from "./unapprovedPRCsvLogger.js"
 const bitbucketClient = bbClientInit();
 
 const WORKSPACE_REPOSITORIES = config.BITBUCKET_WORKSPACE_REPOSITORIES;
-
 const FROM_DATE = config.FROM_DATE;
+const INCLUDE_PRS_IN_SUMMARY_VIEW = false;
 
 processRepositories();
 
@@ -80,25 +80,21 @@ async function processRepositories() {
         const semiCompliantPRs = pullRequests.filter(pr => pr.approvalStatus.startsWith("SEMI_COMPLIANT"));
         const compliant = pullRequests.filter(pr => pr.approvalStatus.startsWith("COMPLIANT"));
         const totalPRCount = pullRequests.length;
-        logSummary("Not Compliant", notCompliantPRs.length, totalPRCount);
-        for (let pr of notCompliantPRs) {
-            console.log(pr.links.html.href);
-        }
-        logSummary("Semi Compliant", semiCompliantPRs.length, totalPRCount);
-        for (let pr of semiCompliantPRs) {
-            console.log(pr.links.html.href);
-        }
-        logSummary("Compliant", compliant.length, totalPRCount);
-        for (let pr of compliant) {
-            console.log(pr.links.html.href);
-        }
+        logSummary("Not Compliant", notCompliantPRs, totalPRCount);
+        logSummary("Semi Compliant", semiCompliantPRs, totalPRCount);
+        logSummary("Compliant", compliant, totalPRCount);
         console.log(`------------------------------\n\n`);
     }
     csvResultWriter.end();
 }
 
 function logSummary(title, partial, total) {
-    console.log(`${title}: ${percentage(partial, total)}% (${partial}/${total})`);
+    console.log(`${title}: ${percentage(partial.length, total)}% (${partial.length}/${total})`);
+    if (INCLUDE_PRS_IN_SUMMARY_VIEW) {
+        for (let pr of partial) {
+            console.log(pr.links.html.href);
+        }
+    }
 }
 
 function percentage(partialValue, totalValue) {
