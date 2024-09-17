@@ -71,15 +71,16 @@ async function processRepositories() {
         const notCompliantPRs = pullRequests.filter(pr => pr.approvalStatus.startsWith("NOT_COMPLIANT"));
         const semiCompliantPRs = pullRequests.filter(pr => pr.approvalStatus.startsWith("SEMI_COMPLIANT"));
         const compliant = pullRequests.filter(pr => pr.approvalStatus.startsWith("COMPLIANT"));
-        console.log(`Not Compliant: ${notCompliantPRs.length}/${pullRequests.length}`);
+        const totalPRCount = pullRequests.length;
+        logSummary("Not Compliant", notCompliantPRs.length, totalPRCount);
         for (let pr of notCompliantPRs) {
             console.log(pr.links.html.href);
         }
-        console.log(`Semi Compliant: ${semiCompliantPRs.length}/${pullRequests.length}`);
+        logSummary("Semi Compliant", semiCompliantPRs.length, totalPRCount);
         for (let pr of semiCompliantPRs) {
             console.log(pr.links.html.href);
         }
-        console.log(`Compliant: ${compliant.length}/${pullRequests.length}`);
+        logSummary("Compliant", semiCompliantPRs.length, totalPRCount);
         for (let pr of compliant) {
             console.log(pr.links.html.href);
         }
@@ -87,3 +88,12 @@ async function processRepositories() {
     }
     csvResultWriter.end();
 }
+
+function logSummary(title, partial, total) {
+    console.log(`${title}: ${percentage(partial, total)}% (${partial}/${total})`);
+}
+
+function percentage(partialValue, totalValue) {
+    const percentageDecimal =  (100 * partialValue) / totalValue;
+    return Math.round((percentageDecimal + Number.EPSILON) * 100) / 100;
+ }
