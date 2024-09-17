@@ -1,6 +1,8 @@
 import config from "./config.js";
 import minimist from 'minimist';
-import {bbClientInit} from './bitbucketClient.js';
+import { bbClientInit } from './bitbucketClient.js';
+import { writeCSVResults } from "./unapprovedPRCsvLogger.js"
+
 const bitbucketClient = bbClientInit();
 
 const REPOSITORIES = config.BITBUCKET_REPOSITORIES;
@@ -26,21 +28,28 @@ function getApprovalStatus(pr) {
         }
     });
 
-    if (mergeDate && approvalDates.length === 0) {
+    if (!mergeDate) {
+        throw new Error(`No merge date - wut? ${pr.links.html.href}`)
+    }
+
+    if (approvalDates.length === 0) {
         return 'NOT_COMPLIANT-MERGED_NO_APPROVAL';
     }
 
-    const approvedBeforeMerge = approvalDates.some(approvalDate => mergeDate < approvalDate);
-    const approvedAfterMerge = approvalDates.some(approvalDate => mergeDate > approvalDate);
-    if (mergeDate && approvedBeforeMerge) {
-        return 'COMPLIANT-MERGED_AFTER_APPROVAL';
-    }
+    const approvedBeforeMerge = approvalDates.some(approvalDate => mergeDate > approvalDate);
+    const approvedAfterMerge = approvalDates.some(approvalDate => mergeDate < approvalDate);
 
-    if (mergeDate && approvedBeforeMerge && approvedAfterMerge) {
+    // These likely indicate that the author made a change after the first approval and then later got a second approval after merge?
+    if (approvedBeforeMerge && approvedAfterMerge) {
         return 'SEMI_COMPLIANT-MERGED_WITH_ADDITIONAL_POST_APPROVAL';
     }
 
-    if (mergeDate && approvedAfterMerge) {
+    //TODO: this doesn't guarantee no changes between approval & merge tho - need to flag those somehow?
+    if (approvedBeforeMerge) {
+        return 'COMPLIANT-MERGED_AFTER_APPROVAL';
+    }
+
+    if (approvedAfterMerge) {
         return 'NOT_COMPLIANT-MERGED_WITH_ONLY_POST_APPROVAL';
     }
 
@@ -55,7 +64,6 @@ async function processRepositories() {
 
         const pullRequests = await bitbucketClient.getMergedPullRequests(repo, FROM_DATE);
 
-        const mergedWithoutApproval = [];
         for (const pr of pullRequests) {
             pr.approvalStatus = getApprovalStatus(pr);
         }
@@ -76,6 +84,8 @@ async function processRepositories() {
             console.log(pr.links.html.href);
         }
         console.log(`------------------------------\n\n`);
+
+        writeCSVResults(repo, pullRequests);
     }
 
 }

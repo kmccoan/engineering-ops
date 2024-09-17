@@ -1,10 +1,10 @@
 import fs from 'fs';
 
-export function writeResults(repo, pullRequests) {
+export function writeCSVResults(repo, pullRequests) {
     const rows = getPullRequestRows(repo, pullRequests);
     try {
         fs.writeFileSync(
-            "results.csv",
+            `results/${repo}-results.csv`,
             rows
         )
     } catch (err) {
@@ -19,7 +19,7 @@ function getPullRequestRows(repo, pullRequests) {
         .map(pr => [
             repo,
             `${pr.id}`,
-            `new Date(pr.created_at)`,
+            `${new Date(pr.created_on)}`,
             pr.approvalStatus
         ].join(','));
 
