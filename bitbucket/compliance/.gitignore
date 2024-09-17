@@ -1,3 +1,4 @@
 # General
 bitbucketCache.json
-results/*
+results/*.csv
+results/*.txt

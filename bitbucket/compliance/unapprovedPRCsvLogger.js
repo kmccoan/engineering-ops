@@ -2,8 +2,14 @@ import fs from 'fs';
 
 export function initializeCsvWriter() {
     const resultsFilePath = "results/prApprovalStatuses.csv";
-    fs.unlinkSync( resultsFilePath )
-    const stream = fs.createWriteStream(resultsFilePath, {flags:'a'});
+    try {
+        fs.accessSync(resultsFilePath, fs.constants.R_OK);
+        fs.unlinkSync(resultsFilePath)
+    } catch (err) {
+        // Do nothing - there's no file yet.
+    }
+
+    const stream = fs.createWriteStream(resultsFilePath, { flags: 'a' });
     const header = "Repo, PR number, Created at, Approval Status\n";
     stream.write(header);
 

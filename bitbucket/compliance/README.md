@@ -28,8 +28,7 @@ export default {
     // https://bitbucket.org/account/settings/app-passwords/
     BITBUCKET_PASSWORD: "<app password>",
 
-    BITBUCKET_WORKSPACE: "<workspace-slug>",
-    BITBUCKET_REPOSITORIES: ["<repo-name>"],
+    BITBUCKET_WORKSPACE_REPOSITORIES: ["<workspace>/<repo-name>"],
     FROM_DATE: new Date(Date.parse("Jun 1, 2024"))
  }
 ```
