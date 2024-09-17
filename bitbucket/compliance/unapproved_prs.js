@@ -14,6 +14,7 @@ function getApprovalStatus(pr) {
     const activity = pr.prActivity;
     let mergeDate = null;
     const approvalDates = [];
+    const codeUpdates = [];
 
     activity.forEach(event => {
         if (event.update && event.update.state === 'MERGED') {
@@ -24,6 +25,11 @@ function getApprovalStatus(pr) {
             const approvalEventDate = new Date(event.approval.date);
             approvalDates.push(approvalEventDate);
         }
+
+        if (event.update && event.update.state === 'OPEN' && !Object.keys(event.update.changes).length) {
+            const codeUpdate = new Date(event.update.date);
+            codeUpdates.push(codeUpdate);
+        }
     });
 
     if (!mergeDate) {
@@ -33,26 +39,28 @@ function getApprovalStatus(pr) {
     if (approvalDates.length === 0) {
         return 'NOT_COMPLIANT-MERGED_NO_APPROVAL';
     }
+    const mostRecentApprovalBeforeMerge = findDateClosestBefore(approvalDates, mergeDate);
+    const mostRecentApprovalAfterMerge = findDateClosestAfter(approvalDates, mergeDate);
 
-    const approvedBeforeMerge = approvalDates.some(approvalDate => mergeDate > approvalDate);
-    const approvedAfterMerge = approvalDates.some(approvalDate => mergeDate < approvalDate);
-
-    // These likely indicate that the author made a change after the first approval and then later got a second approval after merge?
-    if (approvedBeforeMerge && approvedAfterMerge) {
-        return 'SEMI_COMPLIANT-MERGED_WITH_ADDITIONAL_POST_APPROVAL';
-    }
-
-    //TODO: this doesn't guarantee no changes between approval & merge tho - need to flag those somehow?
-    if (approvedBeforeMerge) {
+    if (mostRecentApprovalBeforeMerge) {
+        const codeUpdatesAfterApproval = codeUpdates.some(codeUpdateDate => {
+            return mostRecentApprovalBeforeMerge < codeUpdateDate && codeUpdateDate < mergeDate;
+        });
+        if (codeUpdatesAfterApproval && mostRecentApprovalAfterMerge) {
+            return 'SEMI_COMPLIANT-MERGED_WITH_ADDITIONAL_POST_APPROVAL';
+        }
+        if (codeUpdatesAfterApproval && !mostRecentApprovalAfterMerge) {
+            return 'NOT_COMPLIANT-MERGED_WITH_CHANGES_NO_APPROVAL';
+        }
         return 'COMPLIANT-MERGED_AFTER_APPROVAL';
     }
 
-    if (approvedAfterMerge) {
+    if (mostRecentApprovalAfterMerge) {
         return 'NOT_COMPLIANT-MERGED_WITH_ONLY_POST_APPROVAL';
     }
 
     console.log(approvalDates);
-    throw new Error(`What is this state? ${pr.links.html.href}. Merge date ${mergeDate}, approvedBeforeMerge: ${approvedBeforeMerge}, approvedAfterMerge: ${approvedAfterMerge}`)
+    throw new Error(`What is this state? ${pr.links.html.href}. Merge date ${mergeDate}, mostRecentApprovalBeforeMerge: ${mostRecentApprovalBeforeMerge}, mostRecentApprovalAfterMerge: ${mostRecentApprovalAfterMerge}`)
 }
 
 async function processRepositories() {
@@ -80,7 +88,7 @@ async function processRepositories() {
         for (let pr of semiCompliantPRs) {
             console.log(pr.links.html.href);
         }
-        logSummary("Compliant", semiCompliantPRs.length, totalPRCount);
+        logSummary("Compliant", compliant.length, totalPRCount);
         for (let pr of compliant) {
             console.log(pr.links.html.href);
         }
@@ -94,6 +102,35 @@ function logSummary(title, partial, total) {
 }
 
 function percentage(partialValue, totalValue) {
-    const percentageDecimal =  (100 * partialValue) / totalValue;
+    const percentageDecimal = (100 * partialValue) / totalValue;
     return Math.round((percentageDecimal + Number.EPSILON) * 100) / 100;
- }
+}
+
+function findDateClosestBefore(dates, date) {
+    let closestBeforeDate = null;
+    for (let d of dates) {
+        if (d < date) {
+            if (!closestBeforeDate) {
+                closestBeforeDate = d;
+            } else if (closestBeforeDate < d) {
+                closestBeforeDate = d
+            }
+        }
+    }
+    return closestBeforeDate;
+}
+
+
+function findDateClosestAfter(dates, date) {
+    let closestAfterDate = null;
+    for (let d of dates) {
+        if (d > date) {
+            if (!closestAfterDate) {
+                closestAfterDate = d;
+            } else if (closestAfterDate > d) {
+                closestAfterDate = d
+            }
+        }
+    }
+    return closestAfterDate;
+}
