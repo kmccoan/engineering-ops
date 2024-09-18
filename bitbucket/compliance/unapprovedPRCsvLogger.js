@@ -10,7 +10,7 @@ export function initializeCsvWriter() {
     }
 
     const stream = fs.createWriteStream(resultsFilePath, { flags: 'a' });
-    const header = "Repo, PR number, Created at, Approval Status\n";
+    const header = "Repo, PR number, PR Url, Created at, Approval Status\n";
     stream.write(header);
 
     return {
@@ -25,6 +25,7 @@ function prRow(workspaceRepo, pr) {
     return [
         workspaceRepo,
         `${pr.id}`,
+        `${pr.links.html.href}`,
         `${new Date(pr.created_on).toISOString()}`,
         pr.approvalStatus
     ].join(',');

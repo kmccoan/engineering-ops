@@ -38,6 +38,7 @@ export function bbClientInit() {
         const allMergedPRs = [];
         let next = `https://api.bitbucket.org/2.0/repositories/${workspaceRepo}/pullrequests`;
         while (next) {
+            process.stdout.write(`.`);
             const throttledRequest = throttle(() => axiosInstance.get(next, {
                 params: {
                     state: 'MERGED',
@@ -53,7 +54,6 @@ export function bbClientInit() {
             if (mergedPRs.length !== mergedPRsWithinTimeframe.length) {
                 break;
             }
-            process.stdout.write(`.`);
             next = response.data.next;
         }
 

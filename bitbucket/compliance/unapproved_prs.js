@@ -64,9 +64,11 @@ function getApprovalStatus(pr) {
 }
 
 async function processRepositories() {
+    console.log(`Starting at ${new Date().toISOString()}`)
     const csvResultWriter = initializeCsvWriter();
+    let count = 1;
     for (const workspaceRepo of WORKSPACE_REPOSITORIES) {
-        console.log(`Processing repository: ${workspaceRepo} from ${FROM_DATE.toISOString()}`);
+        console.log(`Processing repository ${count}/${WORKSPACE_REPOSITORIES.length}: ${workspaceRepo} from ${FROM_DATE.toISOString()}`);
         console.log(`------------------------------`);
 
         const pullRequests = await bitbucketClient.getMergedPullRequests(workspaceRepo, FROM_DATE);
@@ -76,6 +78,7 @@ async function processRepositories() {
             csvResultWriter.appendResult(workspaceRepo, pr);
         }
 
+        count++;
         const notCompliantPRs = pullRequests.filter(pr => pr.approvalStatus.startsWith("NOT_COMPLIANT"));
         const semiCompliantPRs = pullRequests.filter(pr => pr.approvalStatus.startsWith("SEMI_COMPLIANT"));
         const compliant = pullRequests.filter(pr => pr.approvalStatus.startsWith("COMPLIANT"));
@@ -86,6 +89,7 @@ async function processRepositories() {
         console.log(`------------------------------\n\n`);
     }
     csvResultWriter.end();
+    console.log(`Ending at ${new Date().toISOString()}`)
 }
 
 function logSummary(title, partial, total) {
