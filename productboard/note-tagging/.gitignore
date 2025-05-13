@@ -1,0 +1,10 @@
+# Cache directory
+cache/
+
+# Node modules
+node_modules/
+
+# Environment variables
+.env
+.env.*
+!.env.example 
