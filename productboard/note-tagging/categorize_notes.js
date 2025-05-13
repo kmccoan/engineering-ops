@@ -31,7 +31,7 @@ const FEEDBACK_CATEGORIES = [
     },
     {
         name: "Pricing and Value Perception Feedback",
-        description: "Complaints about cost, requests for different pricing tiers or plans, or concerns about ROI"
+        description: "Complaints about cost, requests for different pricing tiers or plans, or concerns about getting the most value from the product."
     },
     {
         name: "Customer Support and Onboarding Feedback",
@@ -51,7 +51,13 @@ const FEEDBACK_CATEGORIES = [
     },
     {
         name: "Non-ICP Feedback",
-        description: "Requests or feedback from personas or industries outside of the target audience, or highly custom/edge use cases"
+        description: `Feedback from organizations or individuals outside our Ideal Customer Profile, such as:
+            - Companies with fewer than 1000 employees
+            - Industries outside our focus (Manufacturing, Technology, Financial Services)
+            - Organizations with transactional or simple sales processes rather than consultative, complex sales motions
+            - Markets that are not highly competitive
+            - Roles or personas not targeted (i.e., not in Marketing, Sales Leadership/Operations, or Sales Enablement)
+            - Requests for highly customized or out-of-scope use cases`
     }
 ];
 
@@ -79,9 +85,12 @@ async function fetchAndCacheNewNotes(timeFrameMs = null) {
         });
 
         const notes = res.data.data;
+        const totalResults = res.data.totalResults;
+        console.log(`Fetched ${totalNewNotes} of ${totalResults} notes...`);
         let foundExisting = false;
         let foundOldNote = false;
 
+        console.log(`Found ${notes.length} notes in batch ${batchCount}`);
         // Process each note in the batch
         for (const note of notes) {
             // Check if note is within time frame
@@ -114,33 +123,39 @@ async function fetchAndCacheNewNotes(timeFrameMs = null) {
         }
 
         batchCount++;
-        console.log(`Fetched batch ${batchCount}, found ${notes.length} notes, ${totalNewNotes} new notes so far...`);
+        console.log(`Fetched batch ${batchCount}, found ${notes.length} notes, ${totalNewNotes} new notes so far of ${totalResults} total notes...`);
 
         // If we found an existing note or old note, stop fetching more pages
         if (foundExisting || foundOldNote) {
+            console.log(`Found existing or old note, stopping fetch`);
             break;
         }
 
         const pageCursor = res.data?.pageCursor;
-        url = pageCursor ? `${PRODUCTBOARD_API}?pageCursor=${pageCursor}` : null;
+        url = pageCursor ? `${PRODUCTBOARD_API}/notes?pageCursor=${pageCursor}` : null;
     }
 
     return totalNewNotes;
 }
 
-async function categorizeNoteFeedbackAndUpdateNote(noteId) {
+async function categorizeAndCache(noteId) {
     const note = cache.getNote(noteId);
-    if (!note) return;
+    if (!note) return null;
 
     const text = note.content || '';
-    if (!text.trim()) return;
+    if (!text.trim()) return null;
 
     const categories = await categorizeNoteContent(noteId, text);
-    
     note.categories = categories;
     cache.saveNote(note);
 
+    return categories;
+}
+
+async function updateNoteTagsWithCategories(noteId, categories) {
     if (categories.length) {
+        const note = cache.getNote(noteId);
+        console.log(`Tagging note ${noteId} with categories: ${categories}`);
         await tagNote(noteId, categories, note.tags);
     }
 }
@@ -228,7 +243,6 @@ function isCategoryTag(tag) {
 }
 
 async function main() {
-    // Get time frame from command line argument
     const timeFrameArg = process.argv[2];
     let timeFrameMs = null;
     
@@ -247,12 +261,17 @@ async function main() {
     const totalNewNotes = await fetchAndCacheNewNotes(timeFrameMs);
     console.log(`Cached ${totalNewNotes} new notes.`);
 
-    console.log(`Phase 2: Processing uncategorized notes...`);
+    console.log("\nPhase 2: Processing uncategorized notes...");
     const noteIds = cache.getUncategorizedNoteIds();
-    console.log(`Found ${noteIds.length} uncategorized notes`);
     
+    let count = 0;
     for (const noteId of noteIds) {
-        await categorizeNoteFeedbackAndUpdateNote(noteId);
+        const categories = await categorizeAndCache(noteId);
+        if (categories) {
+            await updateNoteTagsWithCategories(noteId, categories);
+        }
+        count++;
+        console.log(`Processed ${count} of ${noteIds.length} notes`);
     }
 
     console.log("Done processing all new notes.");
