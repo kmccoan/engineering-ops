@@ -36,5 +36,5 @@ export default {
 # Running
 ```sh
 npm install
-npm run unapproved-check > result.txt
+npm run unapproved-check > results/result.txt
 ```
