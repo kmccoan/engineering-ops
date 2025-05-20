@@ -1,9 +1,8 @@
 import axios from 'axios';
-import { AsyncParser } from '@json2csv/node';
-import fs from 'fs';
 import path from 'path';
 import FileCache from 'node-file-cache';
 import { jiraDomain, jiraUsername, jiraApiToken, jqlQuery, closedStatusName } from './config.js';
+import { writeToCSV } from './csvLogger.js';
 
 const cache = FileCache.create();
 
@@ -93,6 +92,9 @@ function calculateTimeInStatus(issue) {
             const timeInStatus = now - startTimeOfStatus[currentStatus];
             timeSpent[currentStatus] += timeInStatus;
         }
+    } else {
+        const resolutionDate = new Date(issue.fields.resolutiondate);
+        timeSpent.cycleTime = resolutionDate - issueCreatedAt;
     }
 
     // console.log("timeSpent", timeSpent);
@@ -122,6 +124,7 @@ async function processIssues() {
             const timeInStatus = calculateTimeInStatus(issue);
 
             const issueRow = {
+                project: issue.fields.project.key,
                 key: issueKey,
                 ...timeInStatus
             };
@@ -136,14 +139,7 @@ async function processIssues() {
 
         // Convert results to CSV and write to file
         const csvFilePath = path.join(resultsDir, 'jira_issues_time_in_status.csv');
-        const writableStream = fs.createWriteStream(csvFilePath);
-        const parser = new AsyncParser({
-            defaultValue: 0,
-            fields: ['key', ...allPossibleStatuses]
-        }, {}, {});
-
-        parser.parse(results).pipe(writableStream);
-
+        writeToCSV(csvFilePath, ['project', 'key', 'cycleTime', ...allPossibleStatuses], results, { defaultValue: 0})
     } catch (error) {
         console.error('Error processing issues:', error);
     }
