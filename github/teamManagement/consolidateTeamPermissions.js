@@ -1,6 +1,7 @@
 import { Octokit } from "@octokit/rest";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 import config from "./config.js";
 
 /**
@@ -707,4 +708,19 @@ async function main() {
     }
 }
 
-main();
+// Only run main() when executed directly (not imported)
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+    main();
+}
+
+export {
+    PERMISSION_HIERARCHY,
+    permissionsObjectToArray,
+    getHighestPermission,
+    comparePermissions,
+    capPermission,
+    getTeamRepositories,
+    collectRepoPermissions,
+    analyzeAgainstExistingPermissions,
+    executeFromPlanFile
+};

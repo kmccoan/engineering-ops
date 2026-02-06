@@ -32,6 +32,14 @@ export default {
     // If not provided or empty array, all permissions will be consolidated
     // Example: ["pull", "push"] - only consolidate read and write permissions
     PERMISSIONS_TO_CONSOLIDATE: ["pull", "push"],
+
+    // Optional: Maximum permission level to grant on the target (INTO_TEAM) side
+    // Any permission from the source teams that exceeds this cap will be downgraded to this level.
+    // Permissions at or below this level are unchanged.
+    // Valid options: "pull", "triage", "push", "maintain", "admin"
+    // Example: "push" - admin/maintain from source teams become push, but pull/triage stay as-is
+    // Set to null to disable capping (grant exact permissions from source teams)
+    MAX_PERMISSION_TO_GIVE: null,
     
     // Execute from plan file: Set to the plan JSON filename (e.g., "plan-2024-01-15T10-30-00-000Z.json")
     // to execute changes from a previously generated execution plan

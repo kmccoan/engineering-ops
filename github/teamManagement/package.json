@@ -5,7 +5,8 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "consolidate-permissions": "node consolidateTeamPermissions.js"
+    "consolidate-permissions": "node consolidateTeamPermissions.js",
+    "test": "node --test *.test.js"
   },
   "dependencies": {
     "@octokit/rest": "^21.0.2"
