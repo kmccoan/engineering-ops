@@ -1,0 +1,13 @@
+{
+  "name": "github-team-management",
+  "version": "1.0.0",
+  "description": "Scripts for managing GitHub team repository permissions",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "consolidate-permissions": "node consolidateTeamPermissions.js"
+  },
+  "dependencies": {
+    "@octokit/rest": "^21.0.2"
+  }
+}
