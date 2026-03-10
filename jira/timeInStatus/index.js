@@ -2,7 +2,7 @@ import axios from 'axios';
 import path from 'path';
 import FileCache from 'node-file-cache';
 import { jiraDomain, jiraUsername, jiraApiToken, jqlQuery, closedStatusName } from './config.js';
-import { writeToCSV } from './csvLogger.js';
+import { writeToCSV } from '../common/csvLogger.js';
 
 const cache = FileCache.create();
 

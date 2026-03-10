@@ -1,0 +1,8 @@
+{
+    "name": "jira-common",
+    "version": "1.0.0",
+    "type": "module",
+    "dependencies": {
+        "@json2csv/node": "^7.0.6"
+    }
+}
